@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BangPatterns #-}
 
-module Lib2 where
+module Lib where
 
 import qualified Data.IntSet as ISet
 import qualified Data.IntMap.Strict as IMap
