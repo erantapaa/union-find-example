@@ -11,7 +11,7 @@ import qualified Data.Text.IO as T
 
 import Control.Monad.State.Strict
 
-import UnionFind
+import UnionFindVector
 
 assignInt str = do
   (toInt,toWord,!wc) <- get

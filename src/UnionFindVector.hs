@@ -8,27 +8,26 @@ import Control.Monad
 import qualified Data.Vector as V
 import qualified Data.Vector.Algorithms.Intro as VA
 import qualified Data.Vector.Unboxed as UV
-import qualified Data.Vector.Unboxed.Mutable as UV
+import qualified Data.Vector.Unboxed.Mutable as UVM
 import Data.Ord (compare)
 import Data.List (groupBy)
 
 data Merge = NoMerge Int | Merge Int Int
 
-data UnionFind = UF { ufcomp_ :: UV.IOVector Int, ufsize_ :: UV.IOVector Int }
+data UnionFind = UF { ufcomp_ :: UVM.IOVector Int, ufsize_ :: UVM.IOVector Int }
 
 newUnionFind :: Int -> IO UnionFind
 newUnionFind n = do
-  size <- UV.new (n+1)
-  arr <- UV.new (n+1)
-  forM_ [0..n] $ \i -> UV.write arr i i
+  size <- UVM.new (n+1)
+  arr <- UVM.new (n+1)
+  forM_ [0..n] $ \i -> UVM.write arr i i
   return $ UF arr size
-
-{-
 
 -- return the component associated with x
 find :: UnionFind -> Int -> IO Int
 find uf x = go x
-  where go x = do y <- readArray (ufcomp_ uf) x
+  where go :: Int -> IO Int
+        go x = do y <- UVM.read (ufcomp_ uf) x
                   if x == y then return x else go y
 
 -- associate x and y; returns a Merge value
@@ -38,43 +37,45 @@ update uf x y = do
   cy <- find uf y
   if cx == cy
     then return $ NoMerge cx
-    else do sx <- readArray (ufsize_ uf) cx
-            sy <- readArray (ufsize_ uf) cy
-            if sx < sy then do writeArray (ufcomp_ uf) cx cy
-                               writeArray (ufsize_ uf) cy (sx+sy)
+    else do sx <- UVM.read (ufsize_ uf) cx
+            sy <- UVM.read (ufsize_ uf) cy
+            if sx < sy then do UVM.write (ufcomp_ uf) cx cy
+                               UVM.write (ufsize_ uf) cy (sx+sy)
                                return $ Merge cx cy -- cx merged into cy
-                       else do writeArray (ufcomp_ uf) cy cx
-                               writeArray (ufsize_ uf) cx (sx+sy)
+                       else do UVM.write (ufcomp_ uf) cy cx
+                               UVM.write (ufsize_ uf) cx (sx+sy)
                                return $ Merge cy cx -- cy merged into cx
 
 isRoot uf x = do
-  v <- readArray (ufcomp_ uf) x
-  return $ x == v
+  v <- UVM.read (ufcomp_ uf) x
+  return $ x == v :: IO Bool
 
 -- return the root nodes
+roots :: UnionFind -> IO [Int]
 roots uf = do
-  arr <- freeze (ufcomp_ uf) :: IO (UArray Int Int)
-  return $ [ x | (x,cx) <- assocs arr, x == cx ]
+  arr <- UV.freeze (ufcomp_ uf) :: IO (UV.Vector Int)
+  let n = UV.length arr
+  return $ [ x | x <- [1..n-1], x == arr UV.! x ]
 
 -- return an array of the root values
+rootsArray :: UnionFind -> IO (UV.Vector Int)
 rootsArray uf = do
-  (_,n) <- getBounds (ufcomp_ uf)
-  comps <- newArray (1,n) 0 :: IO (IOUArray Int Int)
-  forM_ [1..n] $ \i -> do
+  let n = UVM.length (ufcomp_ uf)
+  comps <- UVM.new n :: IO (UVM.IOVector Int)
+  forM_ [1..(n-1)] $ \i -> do
     r <- find uf i
-    writeArray comps i r
-  freeze comps :: IO (UArray Int Int)
+    UVM.write comps i r
+  UV.freeze comps
 
 -- return lists of values in the same component
-components :: Int -> UArray Int Int -> IO [[Int]]
+components :: Int -> UV.Vector Int -> IO [[Int]]
 components n comps = do
-  v <- UV.new n
-  forM_ [(0::Int)..(n-1)] $ \i -> UV.write v i (i+1)
-  let cmp i j = compare (comps!i) (comps!j)
+  v <- UVM.new n :: IO (UVM.IOVector Int)
+  forM_ [(0::Int)..n-1] $ \i -> UVM.write v i (i+1)
+  let cmp i j = compare (comps UV.! i) (comps UV.! j)
   VA.sortBy cmp v
   w <- UV.freeze v
   -- return lists of the the same component
-  let sameComponent i j = (comps!i) == (comps!j)
+  let sameComponent i j = (comps UV.! i) == (comps UV.! j)
   return $ groupBy sameComponent (UV.toList w)
--}
 
