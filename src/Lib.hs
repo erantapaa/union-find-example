@@ -16,6 +16,10 @@ import UnionFindVector
 
 import System.IO
 
+initWarn = hSetBuffering stderr NoBuffering
+
+warn str = hPutStrLn stderr str
+
 assignInt str = do
   (toInt,toWord,!wc) <- get
   case Hash.lookup str toInt of
@@ -27,7 +31,7 @@ assignInt str = do
                   return wc'
 
 main = do
-  hSetBuffering stderr NoBuffering
+  initWarn
   n <- fmap read getLine
 
   let loop = replicateM n $ do
@@ -44,11 +48,11 @@ main = do
       []     -> return ()
 
   -- 
-  hPutStrLn stderr "--- done updating"
+  warn "--- done updating"
   roots <- rootsArray uf
-  hPutStrLn stderr "--- computed roots array"
+  warn "--- computed roots array"
   comps <- components wc roots
-  hPutStrLn stderr "--- computed components"
+  warn "--- computed components"
 
   forM_ comps $ \cs -> do
     -- emit the set c as words
