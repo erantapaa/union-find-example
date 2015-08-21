@@ -47,10 +47,10 @@ find uf x = go x
                   if x == y then return x else go y
 
 -- associate x and y; returns a Merge value
-update :: UnionFind -> Key -> Key -> IO Merge
+update :: UnionFind -> Int -> Int -> IO Merge
 update uf x y = do
-  cx <- find uf x
-  cy <- find uf y
+  cx <- find uf (fromIntegral x)
+  cy <- find uf (fromIntegral y)
   if cx == cy
     then return $ NoMerge (fromIntegral cx)
     else do sx <- vread (ufsize_ uf) cx
@@ -85,7 +85,7 @@ rootsArray uf = do
   UV.freeze comps
 
 -- return lists of values in the same component
-components :: Int -> UV.Vector Key -> IO [[Key]]
+components :: Int -> UV.Vector Key -> IO [[Int]]
 components n comps = do
   let _ = n :: Int
       _ = comps :: UV.Vector Key
@@ -96,7 +96,7 @@ components n comps = do
   w <- UV.freeze v
   -- return lists of the the same component
   let sameComponent i j = cmp i j == EQ
-  return $ groupBy sameComponent (UV.toList w)
+  return $ map (map fromIntegral) $ groupBy sameComponent (UV.toList w)
 
 {-
 -}
