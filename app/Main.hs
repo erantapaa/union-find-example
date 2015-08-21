@@ -11,8 +11,8 @@ usage = do
           , "       app generate n seed   -- generate n random sets with a seed"
           , "       app merge64 < input   -- merge sets using union find for Ints"
           , "       app merge64a < input  -- interleaved merge sets using union find for Ints"
-          , "       app ufio < input      -- use Data.UnionFind.IO"
-          , "       app test < input      -- merge integer only sets"
+          , "       app ufio < input      -- merge using Data.UnionFind.IO"
+          , "       app test < input      -- only read in the sets"
           ]
 
 main :: IO ()
