@@ -34,7 +34,7 @@ warn str = do
   now <- getCurrentTime
   start <- readIORef startTime
   let diff = diffUTCTime now start
-      secs = printf "%5.1f s" (realToFrac diff :: Double)
+      secs = printf "%7.3f s" (realToFrac diff :: Double)
   hPutStrLn stderr $ "--- " ++ secs ++ " - " ++ str
 
 assignInt str = do

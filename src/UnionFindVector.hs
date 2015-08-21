@@ -18,17 +18,26 @@ data UnionFind = UF { ufcomp_ :: UVM.IOVector Int, ufsize_ :: UVM.IOVector Int }
 
 newUnionFind :: Int -> IO UnionFind
 newUnionFind n = do
-  size <- UVM.new (n+1)
+  size <- UVM.replicate (n+1) 1
   arr <- UVM.new (n+1)
   forM_ [0..n] $ \i -> UVM.write arr i i
   return $ UF arr size
 
--- return the component associated with x
+-- return the component associated with x updating 
+-- nodes to point to their grandparents 
+find' :: UnionFind -> Int -> IO Int
+find' uf x = do y <- UVM.read (ufcomp_ uf) x
+                if x == y
+                  then return x
+                  else do z <- UVM.read (ufcomp_ uf) y
+                          UVM.write (ufcomp_ uf) y z
+                          find' uf z
+
 find :: UnionFind -> Int -> IO Int
-find uf x = go x
-  where go :: Int -> IO Int
-        go x = do y <- UVM.read (ufcomp_ uf) x
-                  if x == y then return x else go y
+find uf x = do y <- UVM.read (ufcomp_ uf) x
+               if x == y
+                 then return x
+                 else find uf y
 
 -- associate x and y; returns a Merge value
 update :: UnionFind -> Int -> Int -> IO Merge
@@ -37,14 +46,25 @@ update uf x y = do
   cy <- find uf y
   if cx == cy
     then return $ NoMerge cx
-    else do sx <- UVM.read (ufsize_ uf) cx
-            sy <- UVM.read (ufsize_ uf) cy
-            if sy < sx then do UVM.write (ufcomp_ uf) cx cy
-                               UVM.write (ufsize_ uf) cx (sy+1)
-                               return $ Merge cx cy -- cx merged into cy
-                       else do UVM.write (ufcomp_ uf) cy cx
-                               UVM.write (ufsize_ uf) cy (sx+1)
-                               return $ Merge cy cx -- cy merged into cx
+    else combine uf cx cy
+
+update' uf x y = do
+  cx <- find' uf x
+  cy <- find' uf y
+  if cx == cy
+    then return $ NoMerge cx
+    else combine uf cx cy
+
+combine :: UnionFind -> Int -> Int -> IO Merge
+combine uf cx cy  =
+    do sx <- UVM.read (ufsize_ uf) cx
+       sy <- UVM.read (ufsize_ uf) cy
+       if sx < sy then do UVM.write (ufcomp_ uf) cx cy        -- make cx point to cy
+                          UVM.write (ufsize_ uf) cy (sx+sy)
+                          return $ Merge cx cy -- cx merged into cy
+                  else do UVM.write (ufcomp_ uf) cy cx        -- make cy point to cx
+                          UVM.write (ufsize_ uf) cx (sx+sy)
+                          return $ Merge cy cx -- cy merged into cx
 
 isRoot uf x = do
   v <- UVM.read (ufcomp_ uf) x
@@ -64,6 +84,16 @@ rootsArray uf = do
   comps <- UVM.new n :: IO (UVM.IOVector Int)
   forM_ [1..(n-1)] $ \i -> do
     r <- find uf i
+    UVM.write comps i r
+  UV.freeze comps
+
+-- return an array of the root values - use find'
+rootsArray' :: UnionFind -> IO (UV.Vector Int)
+rootsArray' uf = do
+  let n = UVM.length (ufcomp_ uf)
+  comps <- UVM.new n :: IO (UVM.IOVector Int)
+  forM_ [1..(n-1)] $ \i -> do
+    r <- find' uf i
     UVM.write comps i r
   UV.freeze comps
 
