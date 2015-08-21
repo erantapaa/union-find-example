@@ -16,7 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Lib, UnionFind, UnionFindVector, Generate, UnionFindVector32
-  build-depends:       base >= 4.7 && < 5, array, containers, vector, vector-algorithms, text, unordered-containers, mtl, MonadRandom, random
+  build-depends:       base >= 4.7 && < 5, array, containers, vector, vector-algorithms, text, unordered-containers, mtl, MonadRandom, random, time
   default-language:    Haskell2010
 
 executable union-find-exe

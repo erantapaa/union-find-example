@@ -39,11 +39,11 @@ update uf x y = do
     then return $ NoMerge cx
     else do sx <- UVM.read (ufsize_ uf) cx
             sy <- UVM.read (ufsize_ uf) cy
-            if sx < sy then do UVM.write (ufcomp_ uf) cx cy
-                               UVM.write (ufsize_ uf) cy (sx+sy)
+            if sy < sx then do UVM.write (ufcomp_ uf) cx cy
+                               UVM.write (ufsize_ uf) cx (sy+1)
                                return $ Merge cx cy -- cx merged into cy
                        else do UVM.write (ufcomp_ uf) cy cx
-                               UVM.write (ufsize_ uf) cx (sx+sy)
+                               UVM.write (ufsize_ uf) cy (sx+1)
                                return $ Merge cy cx -- cy merged into cx
 
 isRoot uf x = do
@@ -78,4 +78,12 @@ components n comps = do
   -- return lists of the the same component
   let sameComponent i j = (comps UV.! i) == (comps UV.! j)
   return $ groupBy sameComponent (UV.toList w)
+
+dumpSizes uf = do
+  v <- UV.freeze (ufsize_ uf)
+  putStrLn $ unwords $ map show (UV.toList v)
+
+dumpComps uf = do
+  v <- UV.freeze (ufcomp_ uf)
+  putStrLn $ unwords $ map show (UV.toList v)
 

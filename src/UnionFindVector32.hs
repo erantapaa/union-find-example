@@ -55,11 +55,11 @@ update uf x y = do
     then return $ NoMerge (fromIntegral cx)
     else do sx <- vread (ufsize_ uf) cx
             sy <- vread (ufsize_ uf) cy
-            if sx < sy then do vwrite (ufcomp_ uf) cx cy
-                               vwrite (ufsize_ uf) cy (sx+sy)
+            if sy < sx then do vwrite (ufcomp_ uf) cx cy
+                               vwrite (ufsize_ uf) cx (sy+1)
                                return $ Merge (fromIntegral cx) (fromIntegral cy) -- cx merged into cy
                        else do vwrite (ufcomp_ uf) cy cx
-                               vwrite (ufsize_ uf) cx (sx+sy)
+                               vwrite (ufsize_ uf) cy (sx+1)
                                return $ Merge (fromIntegral cy) (fromIntegral cx) -- cy merged into cx
 
 isRoot :: UnionFind -> Key -> IO Bool

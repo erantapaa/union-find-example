@@ -39,11 +39,11 @@ update uf x y = do
     then return $ NoMerge cx
     else do sx <- readArray (ufsize_ uf) cx
             sy <- readArray (ufsize_ uf) cy
-            if sx < sy then do writeArray (ufcomp_ uf) cx cy
-                               writeArray (ufsize_ uf) cy (sx+sy)
+            if sy < sx then do writeArray (ufcomp_ uf) cx cy
+                               writeArray (ufsize_ uf) cx (sy+1)
                                return $ Merge cx cy -- cx merged into cy
                        else do writeArray (ufcomp_ uf) cy cx
-                               writeArray (ufsize_ uf) cx (sx+sy)
+                               writeArray (ufsize_ uf) cy (sx+1)
                                return $ Merge cy cx -- cy merged into cx
 
 isRoot uf x = do

@@ -16,9 +16,26 @@ import qualified UnionFindVector   as UF64
 import qualified UnionFindVector32 as UF32
 
 import System.IO
+import System.IO.Unsafe
+import Data.Time.Clock
+import Text.Printf
+import Data.IORef
 
-initWarn = hSetBuffering stderr NoBuffering
-warn str = hPutStrLn stderr str
+startTime :: IORef UTCTime
+startTime = unsafePerformIO $ getCurrentTime >>= newIORef
+{-# NOINLINE startTime #-}
+
+initWarn = do
+  getCurrentTime >>= writeIORef startTime
+  hSetBuffering stderr NoBuffering
+  warn "starting"
+
+warn str = do
+  now <- getCurrentTime
+  start <- readIORef startTime
+  let diff = diffUTCTime now start
+      secs = printf "%5.1f s" (realToFrac diff :: Double)
+  hPutStrLn stderr $ "--- " ++ secs ++ " - " ++ str
 
 assignInt str = do
   (toInt,toWord,!wc) <- get
@@ -32,10 +49,13 @@ assignInt str = do
 
 readSets = do
   n <- fmap read getLine
+  warn $ "number of sets: " ++ show n
   let loop = replicateM n $ do
               ws <- fmap T.words (liftIO T.getLine)
               mapM assignInt ws
-  runStateT loop (Hash.empty, IMap.empty, 0)
+  r@(a, s@(_,_,wc)) <- runStateT loop (Hash.empty, IMap.empty, 0)
+  warn $ "number of words: " ++ show wc
+  return r
 
 emitSet toWord cs = 
   T.putStrLn $ T.unwords $ map (\c -> IMap.findWithDefault T.empty c toWord) cs
@@ -55,15 +75,16 @@ main64 = do
     case s of
       (x:xs) -> forM_ xs $ \y -> UF64.update uf x y
       []     -> return ()
-  warn "--- done updating"
+  warn "done updating"
 
   roots <- UF64.rootsArray uf
-  warn "--- computed roots array"
+  warn "computed roots array"
 
   comps <- UF64.components wc roots
-  warn "--- computed components"
+  warn "computed components"
 
   forM_ comps $ emitSet toWord
+  warn "done"
 
 main32 = do
   initWarn
@@ -75,15 +96,16 @@ main32 = do
     case s of
       (x:xs) -> forM_ xs $ \y -> UF32.update uf x y
       []     -> return ()
-  warn "--- done updating"
+  warn "done updating"
 
   roots <- UF32.rootsArray uf
-  warn "--- computed roots array"
+  warn "computed roots array"
 
   comps <- UF32.components wc roots
-  warn "--- computed components"
+  warn "computed components"
 
   forM_ comps $ emitSet toWord
+  warn "done"
 
 -- interleaved processing
 
@@ -102,12 +124,13 @@ main64a = do
   (_, (toInt, toWord, wc)) <- runStateT loop  (Hash.empty, IMap.empty, 0)
 
   roots <- UF64.rootsArray uf
-  warn "--- computed roots array"
+  warn "computed roots array"
 
   comps <- UF64.components wc roots
-  warn "--- computed components"
+  warn "computed components"
 
   forM_ comps $ emitSet toWord
+  warn "done"
 
 main32a = do
   initWarn
@@ -124,10 +147,27 @@ main32a = do
   (_, (toInt, toWord, wc)) <- runStateT loop  (Hash.empty, IMap.empty, 0)
 
   roots <- UF32.rootsArray uf
-  warn "--- computed roots array"
+  warn "computed roots array"
 
   comps <- UF32.components wc roots
-  warn "--- computed components"
+  warn "computed components"
 
   forM_ comps $ emitSet toWord
+  warn "done"
+
+-- test
+
+mainTest = do
+  initWarn
+  (nsets : nnodes : _) <- fmap (map read . words) getLine
+  uf <- UF64.newUnionFind nnodes
+  replicateM_ nsets $ do
+    nums <- fmap (map read . words) getLine
+    case nums of
+      [] -> return ()
+      xs -> forM_ (zip xs (tail xs)) $ \(x,y) -> UF64.update uf x y
+  putStr $ "sizes: "
+  UF64.dumpSizes uf
+  putStr $ "comps: "
+  UF64.dumpComps uf
 
