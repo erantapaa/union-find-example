@@ -109,6 +109,25 @@ components n comps = do
   let sameComponent i j = (comps UV.! i) == (comps UV.! j)
   return $ groupBy sameComponent (UV.toList w)
 
+-- return groups of indices which are in the same component
+components' n roots = do
+  v <- UVM.new n :: IO (UVM.IOVector Int)
+  forM_ [(0::Int)..n-1] $ \i -> UVM.write v i (i+1)
+  let cmp i j = compare (roots UV.! i) (roots UV.! j)
+      sameComponent i j = cmp i j == EQ
+  VA.sortBy cmp v
+  w <- UV.freeze v
+  return $ groupBy sameComponent (UV.toList w)
+
+components'' n roots = do
+  v <- UVM.new n :: IO (UVM.IOVector Int)
+  forM_ [(0::Int)..n-1] $ \i -> UVM.write v i (i+1)
+  let cmp i j = compare (roots V.! i) (roots V.! j)
+      sameComponent i j = cmp i j == EQ
+  VA.sortBy cmp v
+  w <- UV.freeze v
+  return $ groupBy sameComponent (UV.toList w)
+
 dumpSizes uf = do
   v <- UV.freeze (ufsize_ uf)
   putStrLn $ unwords $ map show (UV.toList v)

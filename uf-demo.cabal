@@ -1,4 +1,4 @@
-name:                union-find
+name:                uf-demo
 version:             0.1.0.0
 synopsis:            Initial project template from stack
 description:         Please see README.md
@@ -15,24 +15,24 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib, UnionFind, UnionFindVector, Generate, UnionFindVector32
-  build-depends:       base >= 4.7 && < 5, array, containers, vector, vector-algorithms, text, unordered-containers, mtl, MonadRandom, random, time
+  exposed-modules:     Lib, UnionFindVector, Generate
+  build-depends:       base >= 4.7 && < 5, array, containers, vector, vector-algorithms, text, unordered-containers, mtl, MonadRandom, random, time, union-find
   default-language:    Haskell2010
 
-executable union-find-exe
+executable uf-demo-exe
   hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
-                     , union-find
+                     , uf-demo
   default-language:    Haskell2010
 
-test-suite union-find-test
+test-suite uf-demo-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
-                     , union-find
+                     , uf-demo
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 

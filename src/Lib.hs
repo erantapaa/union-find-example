@@ -13,7 +13,10 @@ import qualified Data.Text.IO as T
 import Control.Monad.State.Strict
 
 import qualified UnionFindVector   as UF64
-import qualified UnionFindVector32 as UF32
+
+import qualified Data.UnionFind.IO as UFIO
+import qualified Data.Vector as V
+import Data.Ord
 
 import System.IO
 import System.IO.Unsafe
@@ -60,6 +63,7 @@ readSets = do
 emitSet toWord cs = 
   T.putStrLn $ T.unwords $ map (\c -> IMap.findWithDefault T.empty c toWord) cs
 
+-- just read in the sets
 main0 = do
   initWarn
   (sets, (toInt, toWord, wc)) <- readSets
@@ -81,27 +85,6 @@ main64 = do
   warn "computed roots array"
 
   comps <- UF64.components wc roots
-  warn "computed components"
-
-  forM_ comps $ emitSet toWord
-  warn "done"
-
-main32 = do
-  initWarn
-  (sets, (toInt, toWord, wc)) <- readSets
-
-  -- run the union find
-  uf <- UF32.newUnionFind wc
-  forM_ sets $ \s -> do
-    case s of
-      (x:xs) -> forM_ xs $ \y -> UF32.update uf x y
-      []     -> return ()
-  warn "done updating"
-
-  roots <- UF32.rootsArray uf
-  warn "computed roots array"
-
-  comps <- UF32.components wc roots
   warn "computed components"
 
   forM_ comps $ emitSet toWord
@@ -132,29 +115,6 @@ main64a = do
   forM_ comps $ emitSet toWord
   warn "done"
 
-main32a = do
-  initWarn
-  n <- fmap read getLine
-  uf <- UF32.newUnionFind (n*6)
-
-  let loop = replicateM n $ do
-              ws <- fmap T.words (liftIO T.getLine)
-              ns <- mapM assignInt ws
-              case ns of
-                [] -> return ()
-                (x:xs) -> liftIO $ forM_ xs $ \y -> UF32.update uf x y
-
-  (_, (toInt, toWord, wc)) <- runStateT loop  (Hash.empty, IMap.empty, 0)
-
-  roots <- UF32.rootsArray uf
-  warn "computed roots array"
-
-  comps <- UF32.components wc roots
-  warn "computed components"
-
-  forM_ comps $ emitSet toWord
-  warn "done"
-
 -- test
 
 mainTest = do
@@ -170,4 +130,39 @@ mainTest = do
   UF64.dumpSizes uf
   putStr $ "comps: "
   UF64.dumpComps uf
+
+-- with Data.UnionFind.IO
+
+mainIO = do
+  initWarn
+  (sets, (toInt, toWord, wc)) <- readSets
+
+  -- run the union find
+  
+  points <- V.generateM (wc+1) (\i -> UFIO.fresh i)
+  forM_ sets $ \s -> do
+    case s of
+      (x:xs) -> forM_ xs $ \y -> UFIO.union (points V.! x) (points V.! y)
+      []     -> return ()
+  warn "done updating"
+
+  roots <- V.generateM (wc+1) (\i -> UFIO.repr (points V.! i) >>= UFIO.descriptor )
+  warn "computed roots array"
+
+  comps <- UF64.components'' wc roots
+  warn "computed components"
+
+  forM_ comps $ emitSet toWord
+  warn "done"
+
+{-
+  roots <- UF64.rootsArray uf
+  warn "computed roots array"
+
+  comps <- UF64.components wc roots
+  warn "computed components"
+
+  forM_ comps $ emitSet toWord
+  warn "done"
+-}
 
